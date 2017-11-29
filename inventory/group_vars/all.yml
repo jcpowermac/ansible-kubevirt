@@ -1,0 +1,9 @@
+---
+token: "{{ lookup('password', '/tmp/kube_token_first chars=ascii_letters,digits length=6') | lower }}.{{ lookup('password', '/tmp/kube_token_second chars=ascii_letters,digits length=16') | lower }}"
+
+
+dns4: "10.53.252.246 10.53.252.123"
+gateway: 10.53.250.1
+mask: 24
+ansible_ssh_username: root
+ansible_password:

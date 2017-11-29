@@ -1,0 +1,27 @@
+---
+# tasks file for kubeadm_masters
+#
+#
+#- name: Kubernetes service
+#  k8s_v1_service:
+#    name: kubernetes
+#    namespace: default
+#    kubeconfig: "{{ kube_config_path }}"
+#    state: absent
+
+- name: kubeadm init
+  command: "kubeadm init --token {{ token }}"
+
+- file:
+    path: /root/.kube/
+    recurse: True
+    state: directory
+
+- copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    remote_src: True
+
+- name: Install Weave
+  shell: "kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')\""
+

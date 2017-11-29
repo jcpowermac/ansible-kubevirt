@@ -1,0 +1,43 @@
+- name: Kubernetes and KubeVirt
+  gather_facts: True
+  hosts: all
+  any_errors_fatal: True
+  tasks:
+    - include_role:
+        name: partition
+    - include_role:
+        name: docker
+    - include_role:
+        name: networking
+    - include_role:
+        name: kubeadm_prereq
+
+
+- name: Configure kubernetes masters
+  gather_facts: True
+  any_errors_fatal: True
+  hosts: masters
+  tasks:
+    - include_role:
+        name: kubeadm_masters
+
+- name: Configure Kubernetes nodes
+  gather_facts: True
+  any_errors_fatal: True
+  hosts: nodes
+  tasks:
+    - setup:
+      delegate_to: "{{ groups['masters'][0] }}"
+      delegate_facts: True
+
+    - include_role:
+        name: kubeadm_nodes
+
+
+- name: Configure KubeVirt
+  gather_facts: True
+  any_errors_fatal: True
+  hosts: masters
+  tasks:
+    - include_role:
+        name: kubevirt

@@ -1,0 +1,59 @@
+---
+
+- name: Docker Volume Group
+  lvol:
+    lv: dockerlv
+    vg: dockervg
+    state: present
+  register: dockervol
+
+- name: Remove Docker Volume Group
+  lvol:
+    lv: dockerlv
+    vg: dockervg
+    state: absent
+  when: dockervol | changed
+
+- name: Install Packages
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - docker
+
+- name: stop docker
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+  with_items:
+    - "docker"
+    - "docker-storage-setup"
+
+- name: Delete docker dir
+  file:
+    path: /var/lib/docker
+    state: absent
+  when: dockervol | changed
+
+- name: replace docker options
+  command: sed -i '/OPTIONS=.*/c\OPTIONS="--selinux-enabled --insecure-registry 172.30.0.0/16"' /etc/sysconfig/docker
+- copy:
+    src: docker-storage-setup
+    dest: /etc/sysconfig/docker-storage-setup
+    owner: root
+    group: root
+    mode: 0644
+
+- name: start docker storage setup
+  systemd:
+    name: docker-storage-setup
+    state: started
+  when: dockervol | changed
+
+- name: Start / Enable Docker
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - docker

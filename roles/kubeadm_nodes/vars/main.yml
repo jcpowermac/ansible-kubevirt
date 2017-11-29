@@ -1,0 +1,4 @@
+---
+# vars file for kubeadm_nodes
+master_ip: "{{ hostvars[groups['masters'][0]].ansible_default_ipv4.address }}"
+

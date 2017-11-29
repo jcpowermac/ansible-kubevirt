@@ -1,0 +1,58 @@
+---
+# tasks file for kubevirt
+
+- file:
+    path: /tmp/kubevirt/manifests/
+    recurse: True
+    state: directory
+
+- name: git clone kubevirt master
+  git:
+    repo: "{{ repo }}"
+    dest: "{{ checkout_path }}"
+  register: checkout
+  delegate_to: localhost
+
+- name: Find All Templates
+  find:
+    paths: /tmp/kubevirt/manifests/
+    pattern: "^((?!demo).)*$"
+    use_regex: True
+    recurse: True
+  register: templates
+  delegate_to: localhost
+
+  #- debug:
+  #    msg: "{{ item }}"
+  #  with_items: "{{ templates.files }}"
+  #
+  #- debug:
+  #    msg: "{{ item.path | splitext }}"
+  #  with_items: "{{ templates.files }}"
+
+- name: Process Templates
+  template:
+    src: "{{ item.path }}"
+    dest: "{{ item.path | splitext | first }}"
+  with_items: "{{ templates.files }}"
+  register: template_files
+
+- command: "kubectl apply -f {{ item.dest | default(item.path) }}"
+  when: item | changed
+  with_items: "{{ template_files.results }}"
+
+- name: Expose KubeVirt Services
+  template:
+    src: "external-services.yaml.j2"
+    dest: "/tmp/kubevirt/manifests/external-{{ item.service_name }}.yaml"
+  register: output_file
+  vars:
+    service_name: "{{ item.service_name }}"
+    service_port: "{{ item.service_port }}"
+  with_items: "{{ kubevirt_services }}"
+  when: expose_externally
+
+- command: "kubectl apply -f {{ item.dest | default(item.path) }}"
+  ignore_errors: True
+  when: (item | changed) and expose_externally
+  with_items: "{{ output_file.results }}"
