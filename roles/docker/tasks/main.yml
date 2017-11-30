@@ -1,25 +1,20 @@
 ---
 
-- name: Docker Volume Group
-  lvol:
-    lv: dockerlv
-    vg: dockervg
-    state: present
-  register: dockervol
-
-- name: Remove Docker Volume Group
-  lvol:
-    lv: dockerlv
-    vg: dockervg
-    state: absent
-  when: dockervol | changed
-
 - name: Install Packages
   yum:
     name: "{{ item }}"
     state: installed
   with_items:
     - docker
+    - lvm2
+
+- name: Docker Volume Group
+  lvol:
+    lv: dockerlv
+    vg: dockervg
+    state: present
+  register: dockervol
+  ignore_errors: True
 
 - name: stop docker
   systemd:
@@ -33,7 +28,7 @@
   file:
     path: /var/lib/docker
     state: absent
-  when: dockervol | changed
+  when: dockervol | failed
 
 - name: replace docker options
   command: sed -i '/OPTIONS=.*/c\OPTIONS="--selinux-enabled --insecure-registry 172.30.0.0/16"' /etc/sysconfig/docker
@@ -48,7 +43,7 @@
   systemd:
     name: docker-storage-setup
     state: started
-  when: dockervol | changed
+  when: dockervol | failed
 
 - name: Start / Enable Docker
   systemd:
