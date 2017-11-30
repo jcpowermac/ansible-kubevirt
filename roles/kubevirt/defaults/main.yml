@@ -1,5 +1,4 @@
 ---
-
 docker_tag: latest
 docker_prefix: kubevirt
 primary_nic: eth0
@@ -7,4 +6,11 @@ primary_nic: eth0
 expose_externally: True
 cleanup_kubevirt_files: True
 
+wait_kubevirt_rollout: True
 
+# Wait by default for 10 minutes for kubevirt objects
+until_delay: 30
+until_retries: 20
+
+# ansible.kubernetes-modules
+install_python_requirements: True

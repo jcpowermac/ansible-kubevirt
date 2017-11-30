@@ -1,5 +1,7 @@
 ---
-# tasks file for kubevirt
+- include_role:
+    name: ansible.kubernetes-modules
+  when: wait_kubevirt_rollout
 
 - file:
     path: /tmp/kubevirt/manifests/
@@ -21,14 +23,6 @@
     recurse: True
   register: templates
   delegate_to: localhost
-
-  #- debug:
-  #    msg: "{{ item }}"
-  #  with_items: "{{ templates.files }}"
-  #
-  #- debug:
-  #    msg: "{{ item.path | splitext }}"
-  #  with_items: "{{ templates.files }}"
 
 - name: Process Templates
   template:
@@ -56,3 +50,35 @@
   ignore_errors: True
   when: (item | changed) and expose_externally
   with_items: "{{ output_file.results }}"
+
+- name: Wait for KubeVirt DaemonSet rollout
+  k8s_v1beta1_daemon_set:
+    name: "{{ item }}"
+    kubeconfig: /etc/kubernetes/admin.conf
+    namespace: kube-system
+  register: ds
+  until: ds['daemon_set']['status']['current_number_scheduled'] == ds['daemon_set']['status']['desired_number_scheduled']
+  delay: "{{ until_delay }}"
+  retries: "{{ until_retries }}"
+  with_items:
+    - virt-handler
+    - libvirt
+  when: wait_kubevirt_rollout
+
+- name: Wait for KubeVirt deployment rollout
+  k8s_extensions_v1beta1_deployment:
+    name: "{{ item }}"
+    kubeconfig: /etc/kubernetes/admin.conf
+    namespace: kube-system
+  register: deployment
+  until: deployment['deployment']['status']['conditions'][0].type == "Available"
+  delay: "{{ until_delay }}"
+  retries: "{{ until_retries }}"
+  with_items:
+    - haproxy
+    - spice-proxy
+    - virt-api
+    - virt-controller
+    - virt-manifest
+  when: wait_kubevirt_rollout
+
