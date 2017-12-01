@@ -4,7 +4,7 @@
   when: wait_kubevirt_rollout
 
 - file:
-    path: /tmp/kubevirt/manifests/
+    path: "{{ manifests_path }}"
     recurse: True
     state: directory
 
@@ -17,7 +17,7 @@
 
 - name: Find All Templates
   find:
-    paths: /tmp/kubevirt/manifests/
+    paths: "{{ manifests_path }}"
     pattern: "^((?!demo).)*$"
     use_regex: True
     recurse: True
@@ -38,7 +38,7 @@
 - name: Expose KubeVirt Services
   template:
     src: "external-services.yaml.j2"
-    dest: "/tmp/kubevirt/manifests/external-{{ item.service_name }}.yaml"
+    dest: "{{ manifests_path}}/external-{{ item.service_name }}.yaml"
   register: output_file
   vars:
     service_name: "{{ item.service_name }}"
@@ -54,8 +54,8 @@
 - name: Wait for KubeVirt DaemonSet rollout
   k8s_v1beta1_daemon_set:
     name: "{{ item }}"
-    kubeconfig: /etc/kubernetes/admin.conf
-    namespace: kube-system
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: "{{ namespace }}"
   register: ds
   until: ds['daemon_set']['status']['current_number_scheduled'] == ds['daemon_set']['status']['desired_number_scheduled']
   delay: "{{ until_delay }}"
@@ -68,8 +68,8 @@
 - name: Wait for KubeVirt deployment rollout
   k8s_extensions_v1beta1_deployment:
     name: "{{ item }}"
-    kubeconfig: /etc/kubernetes/admin.conf
-    namespace: kube-system
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: "{{ namespace }}"
   register: deployment
   until: deployment['deployment']['status']['conditions'][0].type == "Available"
   delay: "{{ until_delay }}"
