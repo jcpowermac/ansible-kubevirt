@@ -51,6 +51,8 @@
       with_items:
         - epel-release
       when: wait_kubevirt_rollout
+
+      # TODO; this could be replaced by an ansible kube modules RPM need to find it.
     - name: Install pip
       yum:
         pkg: "{{ item }}"
@@ -66,6 +68,7 @@
       with_items:
         - pip
         - setuptools
+        - openshift
       when: wait_kubevirt_rollout
 
     - include_role:
