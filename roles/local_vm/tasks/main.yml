@@ -1,0 +1,140 @@
+---
+- name: Create instance image directory
+  file:
+    path: "{{ images_path }}"
+    state: directory
+  become: True
+  delegate_to: localhost
+
+- name: list vms
+  virt:
+    name: "{{ inventory_hostname }}"
+    command: status
+  register: vm
+  ignore_errors: True
+  become: True
+  delegate_to: localhost
+
+- name: Download CentOS qcow2 image
+  get_url:
+    url: "{{ centos_url }}"
+    dest: "{{ qcow_image_path }}"
+  become: True
+  delegate_to: localhost
+
+- name: Copy image
+  copy:
+    src: "{{ qcow_image_path }}"
+    dest: "/instances/{{ inventory_hostname }}.qcow2"
+  become: True
+  delegate_to: localhost
+
+- name: Resize
+  command: "qemu-img resize /instances/{{ inventory_hostname }}.qcow2 32G"
+  become: True
+  delegate_to: localhost
+
+- name: Create overlay disk
+  command: "qemu-img create -f qcow2 /instances/{{ inventory_hostname }}-overlay.qcow2 32G"
+  become: True
+  delegate_to: localhost
+
+- name: virt-install
+  command: >
+    virt-install --import --name {{ inventory_hostname }}
+    --memory {{ memory }}
+    --vcpus {{ vcpus }}
+    --disk path="/instances/{{ inventory_hostname }}.qcow2,format=qcow2,bus=virtio"
+    --disk path="/instances/{{ inventory_hostname }}-overlay.qcow2,format=qcow2,bus=virtio"
+    --network network=default
+    --graphics none
+    --console pty,target_type=serial
+    --os-type linux
+    --os-variant centos7.0
+    --noautoconsole
+  become: True
+  delegate_to: localhost
+
+- name: pause
+  pause:
+    seconds: 60
+  delegate_to: localhost
+
+- name: Shutdown VM
+  virt:
+    name: "{{ inventory_hostname }}"
+    state: shutdown
+  become: True
+  delegate_to: localhost
+
+- name: pause
+  pause:
+    seconds: 60
+  delegate_to: localhost
+
+- name: virt sysprep
+  command: >
+    virt-sysprep -d {{ inventory_hostname }}
+    --firstboot-command 'yum erase -y cloud-init'
+    --hostname {{ inventory_hostname }}.{{ domain_name }}
+    --ssh-inject root:file:/home/jcallen/.ssh/id_rsa.pub
+    --root-password password:{{ ansible_password }}
+    --network
+  become: True
+  delegate_to: localhost
+
+- name: enable nested
+  command: "virt-xml {{ inventory_hostname }} --edit --cpu host-passthrough,require=vmx"
+  become: True
+  delegate_to: localhost
+
+- name: Poweron VM
+  virt:
+    name: "{{ inventory_hostname }}"
+    state: running
+  become: True
+  delegate_to: localhost
+
+- name: pause
+  pause:
+    seconds: 90
+  delegate_to: localhost
+
+- name: ip address
+  command: |
+    virsh qemu-agent-command {{ inventory_hostname }}  '{"execute":"guest-network-get-interfaces"}'
+  register: interfaces
+  become: True
+  delegate_to: localhost
+
+- set_fact:
+    interface_json: "{{ interfaces.stdout | from_json }}"
+
+- set_fact:
+    ansible_host: "{{ interface_json.return[1]['ip-addresses'][0]['ip-address'] }}"
+    ansible_connection: ssh
+    ansible_port: 22
+    ansible_ssh_pass: "{{ ansible_password }}"
+
+- name: Upgrade
+  yum:
+    name: '*'
+    state: latest
+
+- name: Install packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - epel-release
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+
