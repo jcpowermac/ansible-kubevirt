@@ -5,14 +5,16 @@ token: "{{ lookup('password', '/tmp/kube_token_first chars=ascii_letters,digits 
 dns4: "192.168.122.1"
 gateway: 192.168.122.1
 mask: 24
+
+domain_name: "example.com"
 ansible_ssh_username: root
 ansible_password:
 
 
-configure_partition: False
-configure_docker: False
-configure_networking: False
-install_kubeadm: False
+configure_partition: True
+configure_docker: True
+configure_networking: True
+install_kubeadm: True
 
 wait_kubevirt_rollout: True
 
