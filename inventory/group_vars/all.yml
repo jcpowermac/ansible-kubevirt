@@ -1,7 +1,6 @@
 ---
 token: "{{ lookup('password', '/tmp/kube_token_first chars=ascii_letters,digits length=6') | lower }}.{{ lookup('password', '/tmp/kube_token_second chars=ascii_letters,digits length=16') | lower }}"
 
-
 dns4: "192.168.122.1"
 gateway: 192.168.122.1
 mask: 24
@@ -11,11 +10,11 @@ ansible_ssh_username: root
 ansible_password:
 
 
-configure_partition: False
-configure_docker: False
-configure_networking: False
-install_kubeadm: False
-create_local_vm: False
+configure_partition: True
+configure_docker: True
+configure_networking: True
+install_kubeadm: True
+create_local_vm: True
 
 wait_kubevirt_rollout: True
 
