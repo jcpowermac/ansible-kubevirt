@@ -57,7 +57,7 @@
     kubeconfig: "{{ kubeconfig }}"
     namespace: "{{ namespace }}"
   register: ds
-  until: ds['daemon_set']['status']['current_number_scheduled'] == ds['daemon_set']['status']['desired_number_scheduled']
+  until: ds['daemon_set']['status']['number_available'] == ds['daemon_set']['status']['desired_number_scheduled']
   delay: "{{ until_delay }}"
   retries: "{{ until_retries }}"
   with_items:
@@ -71,7 +71,7 @@
     kubeconfig: "{{ kubeconfig }}"
     namespace: "{{ namespace }}"
   register: deployment
-  until: deployment['deployment']['status']['conditions'][0].type == "Available"
+  until: "'Available' in deployment['deployment']['status']['conditions'][0].type"
   delay: "{{ until_delay }}"
   retries: "{{ until_retries }}"
   with_items:

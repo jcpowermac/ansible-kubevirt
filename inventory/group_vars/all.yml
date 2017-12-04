@@ -11,10 +11,11 @@ ansible_ssh_username: root
 ansible_password:
 
 
-configure_partition: True
-configure_docker: True
-configure_networking: True
-install_kubeadm: True
+configure_partition: False
+configure_docker: False
+configure_networking: False
+install_kubeadm: False
+create_local_vm: False
 
 wait_kubevirt_rollout: True
 

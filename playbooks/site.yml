@@ -8,6 +8,7 @@
   tasks:
     - include_role:
         name: local_vm
+      when: create_local_vm
 
 - name: Kubernetes and KubeVirt
   gather_facts: True
