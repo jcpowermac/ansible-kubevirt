@@ -1,4 +1,11 @@
 ---
+
+- name: Facts of localhost
+  setup:
+  delegate_to: localhost
+  delegate_facts: True
+
+
 - name: Create instance image directory
   file:
     path: "{{ images_path }}"
@@ -25,27 +32,30 @@
 - name: Copy image
   copy:
     src: "{{ qcow_image_path }}"
-    dest: "/instances/{{ inventory_hostname }}.qcow2"
+    dest: "{{ vm_image_path}}/{{ inventory_hostname }}.qcow2"
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: Resize
-  command: "qemu-img resize /instances/{{ inventory_hostname }}.qcow2 32G"
+  command: "qemu-img resize {{ vm_image_path }}/{{ inventory_hostname }}.qcow2 32G"
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: Create overlay disk
-  command: "qemu-img create -f qcow2 /instances/{{ inventory_hostname }}-overlay.qcow2 32G"
+  command: "qemu-img create -f qcow2 {{ vm_image_path }}/{{ inventory_hostname }}-overlay.qcow2 32G"
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: virt-install
   command: >
     virt-install --import --name {{ inventory_hostname }}
     --memory {{ memory }}
     --vcpus {{ vcpus }}
-    --disk path="/instances/{{ inventory_hostname }}.qcow2,format=qcow2,bus=virtio"
-    --disk path="/instances/{{ inventory_hostname }}-overlay.qcow2,format=qcow2,bus=virtio"
+    --disk path="{{ vm_image_path }}/{{ inventory_hostname }}.qcow2,format=qcow2,bus=virtio"
+    --disk path="{{ vm_image_path }}/{{ inventory_hostname }}-overlay.qcow2,format=qcow2,bus=virtio"
     --network network=default
     --graphics none
     --console pty,target_type=serial
@@ -54,11 +64,13 @@
     --noautoconsole
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: pause
   pause:
     seconds: 60
   delegate_to: localhost
+  when: vm | failed
 
 - name: Shutdown VM
   virt:
@@ -66,27 +78,31 @@
     state: shutdown
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: pause
   pause:
     seconds: 60
   delegate_to: localhost
+  when: vm | failed
 
 - name: virt sysprep
   command: >
     virt-sysprep -d {{ inventory_hostname }}
     --firstboot-command 'yum erase -y cloud-init'
     --hostname {{ inventory_hostname }}.{{ domain_name }}
-    --ssh-inject root:file:/home/jcallen/.ssh/id_rsa.pub
+    --ssh-inject root:file:{{ hostvars['localhost']['ansible_user_dir'] }}/.ssh/id_rsa.pub
     --root-password password:{{ ansible_password }}
     --network
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: enable nested
   command: "virt-xml {{ inventory_hostname }} --edit --cpu host-passthrough,require=vmx"
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: Poweron VM
   virt:
@@ -94,11 +110,13 @@
     state: running
   become: True
   delegate_to: localhost
+  when: vm | failed
 
 - name: pause
   pause:
     seconds: 90
   delegate_to: localhost
+  when: vm | failed
 
 - name: ip address
   command: |

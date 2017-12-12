@@ -15,6 +15,11 @@ until_retries: 20
 # ansible.kubernetes-modules
 install_python_requirements: True
 clone_path: /tmp/kubevirt
-manifests_path: "{{ clone_path }}/manifests/"
+
+# see https://github.com/kubevirt/kubevirt/tree/master/manifests
+# for versions currently:
+# dev, release, testing
+manifests_version: dev
+manifests_path: "{{ clone_path }}/manifests/{{ manifests_version }}/"
 kubeconfig: /etc/kubernetes/admin.conf
 namespace: kube-system
