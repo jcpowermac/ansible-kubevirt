@@ -79,6 +79,5 @@
     - spice-proxy
     - virt-api
     - virt-controller
-    - virt-manifest
   when: wait_kubevirt_rollout
 

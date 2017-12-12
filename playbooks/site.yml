@@ -10,20 +10,26 @@
         name: local_vm
       when: create_local_vm
 
-- name: Kubernetes and KubeVirt
-  gather_facts: True
+- name: Virtual Machine Configuration
   hosts: all
+  gather_facts: True
   any_errors_fatal: True
   tasks:
     - include_role:
         name: partition
       when: configure_partition
     - include_role:
-        name: docker
-      when: configure_docker
-    - include_role:
         name: networking
       when: configure_networking
+
+- name: Kubernetes Prereq
+  gather_facts: True
+  hosts: kube
+  any_errors_fatal: True
+  tasks:
+    - include_role:
+        name: docker
+      when: configure_docker
     - include_role:
         name: kubeadm_prereq
       when: install_kubeadm
