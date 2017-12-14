@@ -95,6 +95,8 @@
     --root-password password:{{ ansible_password }}
     --network
   become: True
+  environment:
+    LIBGUESTFS_BACKEND: 'direct'
   delegate_to: localhost
   when: vm | failed
 

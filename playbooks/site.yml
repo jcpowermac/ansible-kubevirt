@@ -34,6 +34,18 @@
         name: kubeadm_prereq
       when: install_kubeadm
 
+- name: OpenShift Prereq
+  gather_facts: True
+  hosts: OSEv3
+  any_errors_fatal: True
+  tasks:
+    - include_role:
+        name: docker
+      when: configure_docker
+    - include_role:
+        name: openshift_prereq
+      when: install_openshift
+
 - name: Configure kubernetes masters
   gather_facts: True
   any_errors_fatal: True
@@ -56,6 +68,17 @@
         name: kubeadm_nodes
       when: install_kubeadm
 
+- name: OpenShift
+  gather_facts: True
+  hosts: masters
+  any_errors_fatal: True
+  tasks:
+    - include_role:
+        name: openshift
+      when: install_openshift
+
+- import_playbook: /tmp/openshift-ansible/playbooks/deploy_cluster.yml
+  when: install_openshift
 
 - name: Configure KubeVirt
   gather_facts: True
@@ -91,3 +114,4 @@
 
     - include_role:
         name: kubevirt
+      when: install_kubevirt

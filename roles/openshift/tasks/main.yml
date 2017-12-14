@@ -1,0 +1,14 @@
+---
+
+- name: openshift-anisble
+  git:
+    repo: 'https://github.com/openshift/openshift-ansible'
+    dest: /tmp/openshift-ansible
+  delegate_to: localhost
+
+- name: Add master to nodes
+  add_host:
+    hostname: "{{ inventory_hostname }}"
+    groups: nodes
+
+

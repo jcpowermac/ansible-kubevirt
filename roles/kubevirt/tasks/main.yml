@@ -31,25 +31,33 @@
   with_items: "{{ templates.files }}"
   register: template_files
 
-- command: "kubectl apply -f {{ item.dest | default(item.path) }}"
+- name: OpenShift Prereq
+  command: "{{ item }}"
+  with_items:
+    - "oc project kube-system"
+    - "oc adm policy add-scc-to-user privileged -z kubevirt-infra"
+    - "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra"
+  when: install_openshift
+
+- command: "kubectl apply -f {{ item.dest | default(item.path) }} -n {{ namespace }}"
   when: item | changed
   with_items: "{{ template_files.results }}"
 
-- name: Expose KubeVirt Services
-  template:
-    src: "external-services.yaml.j2"
-    dest: "{{ manifests_path}}/external-{{ item.service_name }}.yaml"
-  register: output_file
-  vars:
-    service_name: "{{ item.service_name }}"
-    service_port: "{{ item.service_port }}"
-  with_items: "{{ kubevirt_services }}"
-  when: expose_externally
+  #- name: Expose KubeVirt Services
+  #  template:
+  #    src: "external-services.yaml.j2"
+  #    dest: "{{ manifests_path}}/external-{{ item.service_name }}.yaml"
+  #  register: output_file
+  #  vars:
+  #    service_name: "{{ item.service_name }}"
+  #    service_port: "{{ item.service_port }}"
+  #  with_items: "{{ kubevirt_services }}"
+  #  when: expose_externally
 
-- command: "kubectl apply -f {{ item.dest | default(item.path) }}"
-  ignore_errors: True
-  when: (item | changed) and expose_externally
-  with_items: "{{ output_file.results }}"
+  #- command: "kubectl apply -f {{ item.dest | default(item.path) }}"
+  #  ignore_errors: True
+  #  when: (item | changed) and expose_externally
+  #  with_items: "{{ output_file.results }}"
 
 - name: Wait for KubeVirt DaemonSet rollout
   k8s_v1beta1_daemon_set:
@@ -80,4 +88,10 @@
     - virt-api
     - virt-controller
   when: wait_kubevirt_rollout
+
+- name: Expose haproxy
+  command: "{{ item }}"
+  with_items:
+    - "oc expose deploy haproxy --port=8184"
+    - "oc expose svc haproxy"
 

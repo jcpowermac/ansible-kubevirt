@@ -1,0 +1,36 @@
+---
+- name: Install CentOS Release Openshift Origin
+  yum:
+    name: centos-release-openshift-origin37
+    state: latest
+
+- name: Install Required packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+    - atomic-openshift-utils
+
+- name: Stop network; Start NetworkManager
+  shell: "systemctl stop network && systemctl start NetworkManager && ifup eth0"
+  async: 60
+  poll: 10
+
+- name: Enable NetworkManager and Disable network
+  systemd:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    enabled: "{{ item.enabled }}"
+  with_items:
+    - { name: "NetworkManager", state: "started", enabled: True }
+    - { name: "network", state: "stopped", enabled: False }
