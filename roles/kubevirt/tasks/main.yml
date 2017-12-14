@@ -94,4 +94,5 @@
   with_items:
     - "oc expose deploy haproxy --port=8184"
     - "oc expose svc haproxy"
+  when: install_openshift
 
