@@ -7,13 +7,17 @@ mask: 24
 
 domain_name: "example.com"
 ansible_ssh_username: root
-ansible_password:
+ansible_password: wileyfuse
 
 
 configure_partition: True
 configure_docker: True
 configure_networking: True
-install_kubeadm: True
+
+# use kubeadm to install kubernetes
+install_kubeadm: False
+install_openshift: True
+install_kubevirt: True
 create_local_vm: True
 
 wait_kubevirt_rollout: True

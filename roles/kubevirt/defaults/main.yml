@@ -21,5 +21,6 @@ clone_path: /tmp/kubevirt
 # dev, release, testing
 manifests_version: dev
 manifests_path: "{{ clone_path }}/manifests/{{ manifests_version }}/"
-kubeconfig: /etc/kubernetes/admin.conf
+kubeconfig: /root/.kube/config
+#kubeconfig: /etc/kubernetes/admin.conf
 namespace: kube-system
