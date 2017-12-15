@@ -42,9 +42,11 @@
   delegate_to: "{{ item }}"
   with_items: "{{ groups['OSEv3'] }}"
 
+# yes this is evil and so is the above
+# but this allows kvm guest work at least today.
 - name: KVM device permissions
   file:
     path: /dev/kvm
   mode: 0666
   delegate_to: "{{ item }}"
-  with_items: "{{ groups['OSEv3'] }}"
+  with_items: "{{ groups['kube'] }}"
