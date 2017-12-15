@@ -1,0 +1,47 @@
+---
+- name: Install targetcli
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - targetcli
+    - qemu-img
+    - lvm2
+
+- name: Enable target
+  systemd:
+    name: target
+    enabled: True
+    state: started
+
+- name: Create volume group
+  lvg:
+    vg: vg0
+    pvs: /dev/vdb
+
+# creating this for windows qcow2 image
+# from cloudbase
+- name: Create logical volume
+  lvol:
+    vg: vg0
+    lv: lv0
+    size: 13096714240b
+
+- name: Template target config
+  template:
+    src: config.json.j2
+    dest: /tmp/config.json
+
+- name: Import Config
+  command: "targetcli restoreconfig /tmp/config.json"
+
+
+
+#gunzip windows_server_2012_r2_standard_eval_kvm_20170321.qcow2.gz
+#yum search qemu
+#yum install qemu-img
+#qemu-img --help
+#qemu-img info windows_server_2012_r2_standard_eval_kvm_20170321.qcow2
+#lvcreate -L 13096714240b -n lv0 vg0
+#qemu-img convert windows_server_2012_r2_standard_eval_kvm_20170321.qcow2 -O raw /dev/vg0/lv0
+

@@ -1,6 +1,6 @@
 ---
-- name: Create VMs
-  hosts: all
+- name: Create Kubernetes or OpenShift virtual machines
+  hosts: kube
   connection: local
   gather_facts: False
   any_errors_fatal: True
@@ -9,6 +9,17 @@
     - include_role:
         name: local_vm
       when: create_local_vm
+
+- name: Create iSCSI virtual machines
+  hosts: iscsi
+  connection: local
+  gather_facts: False
+  any_errors_fatal: True
+  serial: 1
+  tasks:
+    - include_role:
+        name: local_vm
+      when: create_local_vm and install_iscsi
 
 - name: Virtual Machine Configuration
   hosts: all
@@ -92,3 +103,14 @@
     - include_role:
         name: kubevirt
       when: install_kubevirt
+
+- name: Configure iSCSI
+  hosts: iscsi
+  connection: local
+  gather_facts: False
+  any_errors_fatal: True
+  serial: 1
+  tasks:
+    - include_role:
+        name: iscsi
+      when: install_iscsi
