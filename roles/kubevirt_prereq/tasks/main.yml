@@ -1,0 +1,52 @@
+---
+- name: Install Packages to test deployment
+  yum:
+    pkg: "{{ item }}"
+    state: latest
+  with_items:
+    - epel-release
+  when: wait_kubevirt_rollout
+
+  # TODO: this could be replaced by an ansible kube modules RPM need to find it.
+- name: Install pip
+  yum:
+    pkg: "{{ item }}"
+    state: latest
+  with_items:
+    - python2-pip
+  when: wait_kubevirt_rollout
+
+- name: Install Python pip packages to test deployment
+  pip:
+    name: "{{ item  }}"
+    state: latest
+  with_items:
+    - pip
+    - setuptools
+    - openshift
+  when: wait_kubevirt_rollout
+
+- name: OpenShift Prereq
+  command: "{{ item }}"
+  with_items:
+    - "oc project kube-system"
+    - "oc adm policy add-scc-to-user privileged -z kubevirt-infra"
+    - "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra"
+  when: install_openshift
+
+- name: Disable SELinux
+  selinux:
+    policy: disabled
+    state: disabled
+  when: install_openshift
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups['OSEv3'] }}"
+
+# yes this is evil and so is the above
+# but this allows kvm guest work at least today.
+- name: KVM device permissions
+  file:
+    path: /dev/kvm
+  mode: 0666
+  delegate_to: "{{ item }}"
+  with_items: "{{ groups['kube'] }}"

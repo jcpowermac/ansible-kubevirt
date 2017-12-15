@@ -85,32 +85,9 @@
   any_errors_fatal: True
   hosts: masters
   tasks:
-    - name: Install Packages to test deployment
-      yum:
-        pkg: "{{ item }}"
-        state: latest
-      with_items:
-        - epel-release
-      when: wait_kubevirt_rollout
-
-      # TODO: this could be replaced by an ansible kube modules RPM need to find it.
-    - name: Install pip
-      yum:
-        pkg: "{{ item }}"
-        state: latest
-      with_items:
-        - python2-pip
-      when: wait_kubevirt_rollout
-
-    - name: Install Python pip packages to test deployment
-      pip:
-        name: "{{ item  }}"
-        state: latest
-      with_items:
-        - pip
-        - setuptools
-        - openshift
-      when: wait_kubevirt_rollout
+    - include_role:
+        name: kubevirt_prereq
+      when: install_kubevirt
 
     - include_role:
         name: kubevirt
