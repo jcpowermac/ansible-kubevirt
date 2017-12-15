@@ -10,7 +10,7 @@ ansible_ssh_username: root
 ansible_password: wileyfuse
 
 
-configure_partition: True
+configure_partition: False
 configure_docker: True
 configure_networking: True
 
