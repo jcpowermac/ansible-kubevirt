@@ -28,7 +28,7 @@
     - { name: "net.ipv4.ip_forward", value: 1 }
 
 - name: Stop network; Start NetworkManager
-  shell: "systemctl stop network && systemctl start NetworkManager && ifup eth0"
+  shell: "systemctl stop network && systemctl start NetworkManager && sleep 10 && ifup eth0"
   async: 60
   poll: 10
 

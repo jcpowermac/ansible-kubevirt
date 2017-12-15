@@ -43,6 +43,22 @@
   delegate_to: localhost
   when: vm | failed
 
+- name: Copy image
+  copy:
+    src: "{{ vm_image_path }}/{{ inventory_hostname }}.qcow2"
+    dest: "{{ vm_image_path}}/{{ inventory_hostname }}-orig.qcow2"
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Resize
+  command: "virt-resize --quiet --expand /dev/vda1 {{ vm_image_path }}/{{ inventory_hostname }}-orig.qcow2 {{ vm_image_path }}/{{ inventory_hostname }}.qcow2"
+  become: True
+  environment:
+    LIBGUESTFS_BACKEND: 'direct'
+  delegate_to: localhost
+  when: vm | failed
+
 - name: Create overlay disk
   command: "qemu-img create -f qcow2 {{ vm_image_path }}/{{ inventory_hostname }}-overlay.qcow2 32G"
   become: True

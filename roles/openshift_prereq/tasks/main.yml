@@ -1,8 +1,11 @@
 ---
 - name: Install CentOS Release Openshift Origin
   yum:
-    name: centos-release-openshift-origin37
+    name: "{{ item }}"
     state: latest
+  with_items:
+    - centos-release-openshift-origin
+    - centos-release-openshift-origin37
 
 - name: Install Required packages
   yum:
