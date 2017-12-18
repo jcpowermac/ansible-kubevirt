@@ -10,13 +10,12 @@ ansible_ssh_username: root
 ansible_password: wileyfuse
 
 
-configure_partition: False
 configure_docker: True
 configure_networking: True
 
 # use kubeadm to install kubernetes
-install_kubeadm: False
-install_openshift: True
+install_kubeadm: True
+install_openshift: False
 install_kubevirt: True
 create_local_vm: True
 

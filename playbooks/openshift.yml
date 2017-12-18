@@ -27,23 +27,8 @@
   any_errors_fatal: True
   tasks:
     - include_role:
-        name: partition
-      when: configure_partition
-    - include_role:
         name: networking
       when: configure_networking
-
-- name: Kubernetes Prereq
-  gather_facts: True
-  hosts: kube
-  any_errors_fatal: True
-  tasks:
-    - include_role:
-        name: docker
-      when: configure_docker
-    - include_role:
-        name: kubeadm_prereq
-      when: install_kubeadm
 
 - name: OpenShift Prereq
   gather_facts: True
@@ -56,28 +41,6 @@
     - include_role:
         name: openshift_prereq
       when: install_openshift
-
-- name: Configure kubernetes masters
-  gather_facts: True
-  any_errors_fatal: True
-  hosts: masters
-  tasks:
-    - include_role:
-        name: kubeadm_masters
-      when: install_kubeadm
-
-- name: Configure Kubernetes nodes
-  gather_facts: True
-  any_errors_fatal: True
-  hosts: nodes
-  tasks:
-    - setup:
-      delegate_to: "{{ groups['masters'][0] }}"
-      delegate_facts: True
-
-    - include_role:
-        name: kubeadm_nodes
-      when: install_kubeadm
 
 - name: OpenShift
   gather_facts: True

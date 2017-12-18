@@ -1,10 +1,10 @@
 ---
+- include_tasks: template.yml
 
 - name: Facts of localhost
   setup:
   delegate_to: localhost
   delegate_facts: True
-
 
 - name: Create instance image directory
   file:
@@ -22,13 +22,6 @@
   become: True
   delegate_to: localhost
 
-- name: Download CentOS qcow2 image
-  get_url:
-    url: "{{ centos_url }}"
-    dest: "{{ qcow_image_path }}"
-  become: True
-  delegate_to: localhost
-
 - name: Copy image
   copy:
     src: "{{ qcow_image_path }}"
@@ -37,27 +30,6 @@
   delegate_to: localhost
   when: vm | failed
 
-- name: Resize
-  command: "qemu-img resize {{ vm_image_path }}/{{ inventory_hostname }}.qcow2 32G"
-  become: True
-  delegate_to: localhost
-  when: vm | failed
-
-- name: Copy image
-  copy:
-    src: "{{ vm_image_path }}/{{ inventory_hostname }}.qcow2"
-    dest: "{{ vm_image_path}}/{{ inventory_hostname }}-orig.qcow2"
-  become: True
-  delegate_to: localhost
-  when: vm | failed
-
-- name: Resize
-  command: "virt-resize --quiet --expand /dev/vda1 {{ vm_image_path }}/{{ inventory_hostname }}-orig.qcow2 {{ vm_image_path }}/{{ inventory_hostname }}.qcow2"
-  become: True
-  environment:
-    LIBGUESTFS_BACKEND: 'direct'
-  delegate_to: localhost
-  when: vm | failed
 
 - name: Create overlay disk
   command: "qemu-img create -f qcow2 {{ vm_image_path }}/{{ inventory_hostname }}-overlay.qcow2 32G"
@@ -84,7 +56,7 @@
 
 - name: pause
   pause:
-    seconds: 60
+    seconds: 15
   delegate_to: localhost
   when: vm | failed
 
@@ -96,16 +68,19 @@
   delegate_to: localhost
   when: vm | failed
 
-- name: pause
-  pause:
-    seconds: 60
-  delegate_to: localhost
+- name: Wait for Shutdown
+  virt:
+    name: "{{ inventory_hostname }}"
+    command: status
   when: vm | failed
+  register: vmstat
+  until: vmstat.status.find("shutdown") != -1
+  retries: 6
+  delay: 10
 
 - name: virt sysprep
   command: >
     virt-sysprep -d {{ inventory_hostname }}
-    --firstboot-command 'yum erase -y cloud-init'
     --hostname {{ inventory_hostname }}.{{ domain_name }}
     --ssh-inject root:file:{{ hostvars['localhost']['ansible_user_dir'] }}/.ssh/id_rsa.pub
     --root-password password:{{ ansible_password }}
@@ -130,16 +105,14 @@
   delegate_to: localhost
   when: vm | failed
 
-- name: pause
-  pause:
-    seconds: 90
-  delegate_to: localhost
-  when: vm | failed
-
 - name: ip address
   command: |
     virsh qemu-agent-command {{ inventory_hostname }}  '{"execute":"guest-network-get-interfaces"}'
   register: interfaces
+  until: interfaces.rc == 0 and (interfaces.stdout | from_json).return[1]['ip-addresses'][0]['ip-address-type'] == "ipv4"
+  retries: 6
+  delay: 10
+  ignore_errors: True
   become: True
   delegate_to: localhost
 
@@ -151,26 +124,4 @@
     ansible_connection: ssh
     ansible_port: 22
     ansible_ssh_pass: "{{ ansible_password }}"
-
-- name: Upgrade
-  yum:
-    name: '*'
-    state: latest
-
-- name: Install packages
-  yum:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-    - epel-release
-    - wget
-    - git
-    - net-tools
-    - bind-utils
-    - iptables-services
-    - bridge-utils
-    - bash-completion
-    - kexec-tools
-    - sos
-    - psacct
 

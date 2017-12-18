@@ -32,8 +32,8 @@
   register: template_files
 
 - command: "kubectl apply -f {{ item.dest | default(item.path) }} -n {{ namespace }}"
-  when: item | changed
   with_items: "{{ template_files.results }}"
+  #  when: item | changed
 
 - name: Wait for KubeVirt DaemonSet rollout
   k8s_v1beta1_daemon_set:

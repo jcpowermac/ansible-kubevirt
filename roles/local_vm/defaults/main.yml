@@ -1,12 +1,14 @@
 ---
 centos_url: https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2
 
-qcow_image_name: centos.qcow2
 
+qcow_image_name: template.qcow2
 vm_image_path: "/instances/"
 images_path: "/instances/images/"
 
-qcow_image_path: "{{ images_path }}/{{ qcow_image_name }}"
+download_image_path: "{{ images_path }}/centos.qcow2"
+
+qcow_image_path: "{{ vm_image_path }}/{{ qcow_image_name }}"
 
 memory: 8192
 vcpus: 2

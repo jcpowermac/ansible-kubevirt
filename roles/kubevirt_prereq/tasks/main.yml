@@ -26,13 +26,13 @@
     - openshift
   when: wait_kubevirt_rollout
 
-- name: OpenShift Prereq
-  command: "{{ item }}"
-  with_items:
-    - "oc project kube-system"
-    - "oc adm policy add-scc-to-user privileged -z kubevirt-infra"
-    - "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra"
-  when: install_openshift
+  #- name: OpenShift Prereq
+  #  command: "{{ item }}"
+  #  with_items:
+  #    - "oc project kube-system"
+  #    - "oc adm policy add-scc-to-user privileged -z kubevirt-infra"
+  #    - "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra"
+  #  when: install_openshift
 
 - name: Disable SELinux
   selinux:
