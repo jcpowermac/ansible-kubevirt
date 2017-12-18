@@ -11,6 +11,13 @@
 
 - name: kubeadm init
   command: "kubeadm init --token {{ token }}"
+  register: init
+  ignore_errors: True
+
+- block:
+    - command: "kubeadm reset"
+    - command: "kubeadm init --token {{ token }}"
+  when: init | failed
 
 - file:
     path: /root/.kube/

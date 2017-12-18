@@ -1,0 +1,183 @@
+---
+- name: Facts of localhost
+  setup:
+  delegate_to: localhost
+  delegate_facts: True
+
+- name: Create instance image directory
+  file:
+    path: "{{ images_path }}"
+    state: directory
+  become: True
+  delegate_to: localhost
+
+- name: list vms
+  virt:
+    name: template
+    command: status
+  register: vm
+  ignore_errors: True
+  become: True
+  delegate_to: localhost
+
+- name: Download CentOS qcow2 image
+  get_url:
+    url: "{{ centos_url }}"
+    dest: "{{ download_image_path }}"
+  become: True
+  delegate_to: localhost
+
+- name: Copy image
+  copy:
+    src: "{{ download_image_path }}"
+    dest: "{{ vm_image_path}}/template.qcow2"
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Resize
+  command: "qemu-img resize {{ vm_image_path }}/template.qcow2 32G"
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Copy image
+  copy:
+    src: "{{ vm_image_path }}/template.qcow2"
+    dest: "{{ vm_image_path}}/template-orig.qcow2"
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Resize
+  command: "virt-resize --quiet --expand /dev/vda1 {{ vm_image_path }}/template-orig.qcow2 {{ vm_image_path }}/template.qcow2"
+  become: True
+  environment:
+    LIBGUESTFS_BACKEND: 'direct'
+  delegate_to: localhost
+  when: vm | failed
+
+- name: virt-install
+  command: >
+    virt-install --import --name template
+    --memory {{ memory }}
+    --vcpus {{ vcpus }}
+    --disk path="{{ vm_image_path }}/template.qcow2,format=qcow2,bus=virtio"
+    --network network=default
+    --graphics none
+    --console pty,target_type=serial
+    --os-type linux
+    --os-variant centos7.0
+    --noautoconsole
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: pause
+  pause:
+    seconds: 2
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Destroy VM
+  virt:
+    name: template
+    state: destroyed
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Wait for Shutdown
+  virt:
+    name: "{{ inventory_hostname }}"
+    command: status
+  when: vm | failed
+  register: vmstat
+  until: vmstat.status.find("shutdown") != -1
+  retries: 6
+  delay: 10
+
+- name: virt sysprep
+  command: >
+    virt-sysprep -d template
+    --firstboot-command 'yum erase -y cloud-init'
+    --hostname {{ inventory_hostname }}.{{ domain_name }}
+    --ssh-inject root:file:{{ hostvars['localhost']['ansible_user_dir'] }}/.ssh/id_rsa.pub
+    --root-password password:{{ ansible_password }}
+    --network
+  become: True
+  environment:
+    LIBGUESTFS_BACKEND: 'direct'
+  delegate_to: localhost
+  when: vm | failed
+
+- name: Poweron VM
+  virt:
+    name: template
+    state: running
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: ip address
+  command: |
+    virsh qemu-agent-command template  '{"execute":"guest-network-get-interfaces"}'
+  when: vm | failed
+  register: interfaces
+  until: interfaces.rc == 0
+  retries: 6
+  delay: 10
+  ignore_errors: True
+  become: True
+  delegate_to: localhost
+
+- set_fact:
+    interface_json: "{{ interfaces.stdout | from_json }}"
+  when: vm | failed
+
+
+- name: Upgrade
+  yum:
+    name: '*'
+    state: latest
+  delegate_to:  "{{ interface_json.return[1]['ip-addresses'][0]['ip-address'] }}"
+  when: vm | failed
+
+- name: Install packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - epel-release
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+    - NetworkManager
+    - NetworkManager-glib
+    - nm-connection-editor.x86_64
+  delegate_to: "{{ interface_json.return[1]['ip-addresses'][0]['ip-address'] }}"
+  when: vm | failed
+
+- name: Poweroff Template
+  virt:
+    name: template
+    state: shutdown
+  become: True
+  delegate_to: localhost
+  when: vm | failed
+
+- name: pause
+  pause:
+    seconds: 30
+  delegate_to: localhost
+  when: vm | failed
+
+
+
